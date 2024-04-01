@@ -3,9 +3,7 @@ hotspot-mips-align.diff
 icc_loading_with_symlink.diff
 icedtea-override-redirect-compiz.diff
 libpcsclite-dlopen.diff
-#jexec.diff
 default-jvm-cfg.diff
-workaround_expand_exec_shield_cs_limit.diff
 adlc-parser.diff
 multiple-pkcs11-library-init.diff
 s390x-opt.diff
@@ -17,23 +15,26 @@ machine-flag.diff
 zero-x32.diff
 hotspot-disable-exec-shield-workaround.diff
 atk-wrapper-security.diff
-# java-access-bridge-security.diff
-# jdk-pulseaudio.diff
 dnd-files.diff
-generated-headers.patch
 m68k-support.diff
 reproducible-properties-timestamp.diff
 # reproducible-javadoc-timestamp.diff
 make-debug-print.diff
 Don-t-optimize-fdlibm-fork-for-Zero-on-linux-sparc-Z.patch
 keep-gtk2-as-default.patch
-jaw-classpath.diff
-jaw-optional.diff
 reproducible-character-data.diff
 reproducible-module-info.diff
-reproducible-copyright-headers.diff
-reproducible-build-user.diff
-riscv64.diff
+#reproducible-copyright-headers.diff
 reproducible-build-jmod.diff
 mips.diff
 #nspr+nss-headers.diff
+8314491-jexec.patch
+build_gtest.patch
+update-assertion-for-armhf.patch
+misalign-pointer-for-armhf.patch
+log-generated-classes-test.patch
+update-permission-test.patch
+ldap-timeout-test-use-ip.patch
+test-use-ip-address.patch
+loong64-autoconf-config.diff
+8315020.diff

@@ -1740,7 +1740,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
                     AuthenticationHeader authhdr = new AuthenticationHeader (
                             "Proxy-Authenticate",
                             responses,
-                            new HttpCallerInfo(url,
+                            getHttpCallerInfo(url,
                                                http.getProxyHostUsed(),
                                                http.getProxyPortUsed(),
                                                authenticator),
@@ -1815,7 +1815,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
 
                     srvHdr = new AuthenticationHeader (
                             "WWW-Authenticate", responses,
-                            new HttpCallerInfo(url, authenticator),
+                            getHttpCallerInfo(url, authenticator),
                             dontUseNegotiate
                     );
 
@@ -1938,9 +1938,12 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
                     continue;
                 }
 
-                try {
-                    cl = Long.parseLong(responses.findValue("content-length"));
-                } catch (Exception exc) { };
+                final String contentLengthVal = responses.findValue("content-length");
+                if (contentLengthVal != null) {
+                    try {
+                        cl = Long.parseLong(contentLengthVal);
+                    } catch (NumberFormatException nfe) { }
+                }
 
                 if (method.equals("HEAD") || cl == 0 ||
                     respCode == HTTP_NOT_MODIFIED ||
@@ -2025,6 +2028,12 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
             }
             if (serverAuthKey != null) {
                 AuthenticationInfo.endAuthRequest(serverAuthKey);
+            }
+            if (proxyAuthentication != null) {
+                proxyAuthentication.disposeContext();
+            }
+            if (serverAuthentication != null) {
+                serverAuthentication.disposeContext();
             }
         }
     }
@@ -2211,7 +2220,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
                     AuthenticationHeader authhdr = new AuthenticationHeader(
                             "Proxy-Authenticate",
                             responses,
-                            new HttpCallerInfo(url,
+                            getHttpCallerInfo(url,
                                                http.getProxyHostUsed(),
                                                http.getProxyPortUsed(),
                                                authenticator),
@@ -2271,6 +2280,9 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
             if (proxyAuthKey != null) {
                 AuthenticationInfo.endAuthRequest(proxyAuthKey);
             }
+            if (proxyAuthentication != null) {
+                proxyAuthentication.disposeContext();
+            }
         }
 
         // restore original request headers
@@ -2278,6 +2290,21 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
 
         // reset responses
         responses.reset();
+    }
+
+    /**
+     * Overridden in https to also include the server certificate
+     */
+    protected HttpCallerInfo getHttpCallerInfo(URL url, String proxy, int port,
+                                               Authenticator authenticator) {
+        return new HttpCallerInfo(url, proxy, port, authenticator);
+    }
+
+    /**
+     * Overridden in https to also include the server certificate
+     */
+    protected HttpCallerInfo getHttpCallerInfo(URL url, Authenticator authenticator) {
+        return new HttpCallerInfo(url, authenticator);
     }
 
     static String connectRequestURI(URL url) {
@@ -2354,7 +2381,8 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
      * the connection.
      */
     @SuppressWarnings({"removal","fallthrough"})
-    private AuthenticationInfo getHttpProxyAuthentication(AuthenticationHeader authhdr) {
+    private AuthenticationInfo getHttpProxyAuthentication(AuthenticationHeader authhdr)
+        throws IOException {
 
         assert isLockHeldByCurrentThread();
 
@@ -2455,6 +2483,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
                                                 authenticator,
                                                 host, null, port, url.getProtocol(),
                                                 "", scheme, url, RequestorType.PROXY);
+                            validateNTLMCredentials(a);
                         }
                         /* If we are not trying transparent authentication then
                          * we need to have a PasswordAuthentication instance. For
@@ -2505,6 +2534,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
             }
             if (ret != null) {
                 if (!ret.setHeaders(this, p, raw)) {
+                    ret.disposeContext();
                     ret = null;
                 }
             }
@@ -2522,7 +2552,8 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
      * preferred.
      */
     @SuppressWarnings("fallthrough")
-    private AuthenticationInfo getServerAuthentication(AuthenticationHeader authhdr) {
+    private AuthenticationInfo getServerAuthentication(AuthenticationHeader authhdr)
+        throws IOException {
 
         // Only called from getInputStream0
         assert isLockHeldByCurrentThread();
@@ -2634,6 +2665,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
                                 authenticator,
                                 url.getHost(), addr, port, url.getProtocol(),
                                 "", scheme, url, RequestorType.SERVER);
+                            validateNTLMCredentials(a);
                         }
 
                         /* If we are not trying transparent authentication then
@@ -2677,6 +2709,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
 
             if (ret != null ) {
                 if (!ret.setHeaders(this, p, raw)) {
+                    ret.disposeContext();
                     ret = null;
                 }
             }
@@ -2703,6 +2736,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
                     DigestAuthentication da = (DigestAuthentication)
                         currentProxyCredentials;
                     da.checkResponse (raw, method, getRequestURI());
+                    currentProxyCredentials.disposeContext();
                     currentProxyCredentials = null;
                 }
             }
@@ -2713,6 +2747,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
                     DigestAuthentication da = (DigestAuthentication)
                         currentServerCredentials;
                     da.checkResponse (raw, method, url);
+                    currentServerCredentials.disposeContext();
                     currentServerCredentials = null;
                 }
             }
@@ -2961,7 +2996,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
         /* must save before calling close */
         reuseClient = http;
         InputStream is = http.getInputStream();
-        if (!method.equals("HEAD")) {
+        if (!method.equals("HEAD") || tunnelState == TunnelState.SETUP) {
             try {
                 /* we want to read the rest of the response without using the
                  * hurry mechanism, because that would close the connection
@@ -3983,6 +4018,27 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
             if (is != null) {
                 is.close();
             }
+        }
+    }
+
+    // ensure there are no null characters in username or password
+    private static void validateNTLMCredentials(PasswordAuthentication pw)
+        throws IOException {
+
+        if (pw == null) {
+            return;
+        }
+        char[] password = pw.getPassword();
+        if (password != null) {
+            for (int i=0; i<password.length; i++) {
+                if (password[i] == 0) {
+                    throw new IOException("NUL character not allowed in NTLM password");
+                }
+            }
+        }
+        String username = pw.getUserName();
+        if (username != null && username.indexOf(0) != -1) {
+            throw new IOException("NUL character not allowed in NTLM username or domain");
         }
     }
 }

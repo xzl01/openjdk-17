@@ -1,3 +1,281 @@
+openjdk-17 (17.0.9+9-2) unstable; urgency=medium
+
+  [ Vladimir Petko ]
+  * d/t/write-problems: Add missing file to generate the problem list.
+
+  [ Pushkar Kulkarni ]
+  * debian/copyright: Update copyrights and notices, using a generator script.
+
+ -- Matthias Klose <doko@ubuntu.com>  Thu, 02 Nov 2023 11:23:27 +0100
+
+openjdk-17 (17.0.9+9-1) unstable; urgency=high
+
+  * OpenJDK 17.0.9 release, build 9.
+    - CVE-2023-30589, CVE-2023-22081, CVE-2023-22091, CVE-2023-22025.	
+      The patch for CVE-2023-30589 also addresses CVE-2023-30585,
+      CVE-2023-30588, and CVE-2023-30590.
+    - Release notes: 
+      https://www.oracle.com/java/technologies/javase/17-0-9-relnotes.html#R17_0_9
+
+  [ Vladimir Petko ]
+  * Backport upstream fix for jexec: can't locate java:
+    No such file or directory.  Closes: #1029342.
+  * d/rules, d/watch: Bundle googletest 1.14.
+  * d/copyright: Add googletest copyright.
+  * d/test: Update problemlist.
+  * d/p: exclude-broken-tests.patch.
+  * d/p/reproducible-properties-timestamp.diff: Use the privileged action
+    to read the system property (JDK-8272157, 914278).
+
+ -- Matthias Klose <doko@ubuntu.com>  Wed, 18 Oct 2023 09:07:04 +0200
+
+openjdk-17 (17.0.9~6ea-1) unstable; urgency=medium
+
+  * OpenJDK 17.0.9 early access, build 6.
+
+  [ Matthias Klose ]
+  * Build-depend on the unversioned libfreetype-dev.
+  * Backport the openjdk-17 zero support for loong64 (Xuefeng Pan).
+    Closes: #1051906.
+  * Build using GCC 13 on development versions.
+
+  [ Vladimir Petko ]
+  * Fix jquery-min.js symlink. Closes: #998763.
+
+ -- Matthias Klose <doko@ubuntu.com>  Sat, 16 Sep 2023 13:35:34 +0200
+
+openjdk-17 (17.0.9~4ea-1) unstable; urgency=medium
+
+  * OpenJDK 17.0.9 early access, build 4.
+
+  [ Vladimir Petko ]
+  * d/t/jtreg-autopkgtest.{sh,in}: JDK-8232153 - set NSS_DEFAULT_DB_TYPE
+    to let sun/security/pkcs11/Secmod/AddTrustedCert.java pass.
+  * d/p/exclude-broken-tests.patch: quarantine pkcs11 tests failing with NSS 3.91.
+  * d/t/problems-armhf.txt: quarantine armhf failing tests:
+    - java/net/httpclient/ManyRequestsLegacy.java: SSL request timeout.
+    - java/util/Random/RandomTestBsi1999.java: deadlock in CI.
+  * d/copyright: Remove liblcms from excluded files.
+  * d/rules: Enable jtreg tests for bionic and focal.
+  * d/p/build_gtest.patch: Update patch to work with earlier versions
+    of google-test.
+
+  [ Matthias Klose ]
+  * Explicitly configure --without-jtreg with the nocheck profile
+
+ -- Matthias Klose <doko@ubuntu.com>  Thu, 24 Aug 2023 08:29:32 +0200
+
+openjdk-17 (17.0.8+7-1) unstable; urgency=high
+
+  * OpenJDK 17.0.8 release, build 7.
+    - CVE-2023-22006, CVE-2023-22036, CVE-2023-22041, CVE-2023-22044,
+      CVE-2023-22045, CVE-2023-22049, CVE-2023-25193.
+    - Release notes:
+      https://www.oracle.com/java/technologies/javase/17-0-8-relnotes.html#R17_0_8
+
+  * Don't run the tests on powerpc, hangs on the buildd.
+  * Refresh patches.
+
+ -- Matthias Klose <doko@ubuntu.com>  Wed, 19 Jul 2023 08:29:02 +0200
+
+openjdk-17 (17.0.8~6-5) unstable; urgency=medium
+
+  * Revert back to the riscv64 hotspot patch to v7.
+
+ -- Matthias Klose <doko@ubuntu.com>  Wed, 12 Jul 2023 14:33:08 +0200
+
+openjdk-17 (17.0.8~6-4) unstable; urgency=medium
+
+  [ Matthias Klose ]
+  * Update the riscv64 hotspot patch to v9.
+  * Run the hotspot tests on riscv64.
+  * Link with --no-as-needed. Closes: #1031521.
+  * d/rules: Remove EXTRA_.*FLAGS_JDK macros.
+  * Fix FTCBFS: Add libffi-dev:native to B-D (Helmut Grohne).
+
+  [ Vladimir Petko ]
+  * Disable runtime/jni/nativeStack/TestNativeStack.java for armhf pending
+    upstream fix.
+
+ -- Matthias Klose <doko@ubuntu.com>  Mon, 10 Jul 2023 16:41:54 +0200
+
+openjdk-17 (17.0.8~6-3) unstable; urgency=medium
+
+  [ Vladimir Petko ]
+  * Use libtestng7-java as jtreg6 dependency as TestNG 7.x is required
+    at runtime.
+  * Regenerate the control file.
+
+ -- Matthias Klose <doko@ubuntu.com>  Sat, 01 Jul 2023 09:19:52 +0200
+
+openjdk-17 (17.0.8~6-2) unstable; urgency=medium
+
+  * Provide versioned java-runtime, java-runtime-headless, java-sdk
+    and java-sdk-headless virtual packages (Emmanuel Bourg). Closes: #1023869.
+  * Install jhsb binary and man page on riscv64.
+  * Bump standards version.
+
+ -- Matthias Klose <doko@ubuntu.com>  Thu, 29 Jun 2023 07:23:06 +0200
+
+openjdk-17 (17.0.8~6-1) experimental; urgency=medium
+
+  * OpenJDK 17.0.8 early access, build 6.
+  * Bump debhelper version to 11.
+
+ -- Matthias Klose <doko@ubuntu.com>  Tue, 27 Jun 2023 12:05:37 +0200
+
+openjdk-17 (17.0.7+7-2) unstable; urgency=medium
+
+  [ Vladimir Petko ]
+  * d/rules: backport testng selection logic.
+
+  [ Matthias Klose ]
+  * Apply the backport patch for 8276799 (RISC-V Hotspot).
+  * Build both JREs (hotspot and zero) on riscv64.
+
+ -- Matthias Klose <doko@ubuntu.com>  Mon, 26 Jun 2023 15:58:27 +0200
+
+openjdk-17 (17.0.7+7-1) unstable; urgency=high
+
+  * OpenJDK 17.0.7 release, build 7.
+    - CVE-2023-21930, CVE-2023-21937, CVE-2023-21938, CVE-2023-21939,
+      CVE-2023-21954, CVE-2023-21967, CVE-2023-21968.
+    - Release notes:
+      https://mail.openjdk.org/pipermail/jdk-updates-dev/2023-April/021899.html
+
+  [ Vladimir Petko ]
+  * Refresh patches.
+  * debian/copyright: Convert to machine readable format.
+  * Update watch file.
+  * Update tag and version handling in the rules file.
+  * debian/JB-jre-headless.postinst.in: trigger ca-certificates-java after
+    the JRE is set up.
+  * d/control: add jtreg6 dependencies, regenerate control.
+  * d/rules: only compile google tests when with_check is enabled, disable them
+    for bullseye and jammy.
+  * d/rules: always use jtreg6.
+  * d/p/exclude-broken-tests.patch: add OpenJDK 17 failures.
+  * d/p/*: add patches for jtreg tests:
+    - disable-thumb-assertion.patch: fix JDK-8305481.
+    - update-assertion-for-armhf.patch: fix JDK-8305480.
+    - misalign-pointer-for-armhf.patch: packaging-specific patch to fix test
+    - failure introduced by d/p/m68k-support.diff.
+    - log-generated-classes-test.patch: workaround JDK-8166162.
+    - update-permission-test.patch: add security permissions for testng 7.
+    - ldap-timeout-test-use-ip.patch, test-use-ip-address.patch: Ubuntu-specific
+    - patches to workaround missing DNS resolver on the build machines.
+    - exclude_broken_tests.patch: quarantine failing tests.
+  * d/t/{jdk,hotspot,jaxp,lantools}: run tier1 and tier2 jtreg tests only,
+  * add test options from OpenJDK Makefile, patch problem list to exclude
+    architecture-specific failing tests.
+  * d/t/*: fix test environment: add missing -nativepath (LP: #2001563).
+  * d/t/jdk: provide dbus session for the window manager (LP: #2001576).
+  * d/t/jtreg-autopkgtest.in: pass JTREG home to locate junit.jar, regenerate
+  * d/t/jtreg-autopkgtest.sh (LP: #2016206).
+  * d/rules: pack external debug symbols with build-id, do not strip JVM shared
+    libraries (LP: #2012326, LP: #2016739).
+  * drop d/p/{jaw-classpath.diff, jaw-optional.diff}: the atk wrapper is
+    disabled and these patches cause class data sharing tests to fail.
+    LP: #2016194.
+
+ -- Matthias Klose <doko@debian.org>  Tue, 06 Jun 2023 13:36:52 +0200
+
+openjdk-17 (17.0.6+10-1) unstable; urgency=high
+
+  * OpenJDK 17.0.6 release, build 10.
+    - CVE-2023-21835, CVE-2023-21843
+    - Release notes:
+      https://www.oracle.com/java/technologies/javase/17-0-6-relnotes.html
+
+  [ Vladimir Petko ]
+  * debian/patches/*: Refresh patches for the new release and drop unused
+    patches.
+  * debian/rules: add lunar to jtreg version selection.
+
+ -- Matthias Klose <doko@ubuntu.com>  Thu, 26 Jan 2023 11:36:16 +0100
+
+openjdk-17 (17.0.5+8-2) unstable; urgency=medium
+
+  * Fix the binary-indep only build.
+
+ -- Matthias Klose <doko@debian.org>  Wed, 19 Oct 2022 16:23:50 +0200
+
+openjdk-17 (17.0.5+8-1) unstable; urgency=high
+
+  * OpenJDK 17.0.5+8 (release).
+  * Security fixes
+    - JDK-8289366: Improve HTTP/2 client usage.
+    - JDK-8288508: Enhance ECDSA usage.
+    - JDK-8286918: Better HttpServer service.
+    - JDK-8287446: Enhance icon presentations.
+    - JDK-8286910: Improve JNDI lookups.
+    - JDK-8286511: Improve macro allocation.
+    - JDK-8286526: Improve NTLM support.
+    - JDK-8286533: Key X509 usages.
+    - JDK-8286077: Wider MultiByte conversions.
+    - JDK-8286519: Better memory handling.
+    - JDK-8285662: Better permission resolution.
+    - JDK-8282252: Improve BigInteger/Decimal validation.
+  * Build using GCC 12 in recent development distros.
+
+ -- Matthias Klose <doko@ubuntu.com>  Wed, 19 Oct 2022 06:59:58 +0200
+
+openjdk-17 (17.0.4+8-1) unstable; urgency=high
+
+  * OpenJDK 17.0.4+8 (release).
+  * Security fixes
+    - JDK-8272243: Improve DER parsing.
+    - JDK-8272249: Better properties of loaded Properties.
+    - JDK-8273056, JDK-8283875, CVE-2022-21549: java.util.random does not
+      correctly sample exponential or Gaussian distributions.
+    - JDK-8277608: Address IP Addressing.
+    - JDK-8281859, CVE-2022-21540: Improve class compilation.
+    - JDK-8281866, CVE-2022-21541: Enhance MethodHandle invocations.
+    - JDK-8283190: Improve MIDI processing.
+    - JDK-8284370: Improve zlib usage.
+    - JDK-8285407, CVE-2022-34169: Improve Xalan supports.
+  * Disable the reproducible-copyright-headers patch.
+  * Only try to re-run failed tests once instead of three times.
+
+ -- Matthias Klose <doko@ubuntu.com>  Wed, 20 Jul 2022 18:04:41 +0200
+
+openjdk-17 (17.0.3+7-1) unstable; urgency=high
+
+  * OpenJDK 17.0.3+7 (release).
+  * Security fixes
+    - JDK-8269938: Enhance XML processing passes redux.
+    - JDK-8270504, CVE-2022-21426: Better XPath expression handling.
+    - JDK-8272255: Completely handle MIDI files.
+    - JDK-8272261: Improve JFR recording file processing.
+    - JDK-8272588: Enhanced recording parsing.
+    - JDK-8272594: Better record of recordings.
+    - JDK-8274221: More definite BER encodings.
+    - JDK-8275082, JDK-8278008, CVE-2022-21476: Update XML Security for Java
+      to 2.3.0.
+    - JDK-8275151, CVE-2022-21443: Improved Object Identification.
+    - JDK-8277227: Better identification of OIDs.
+    - JDK-8277233, CVE-2022-21449: Improve ECDSA signature support.
+    - JDK-8277672, CVE-2022-21434: Better invocation handler handling.
+    - JDK-8278356: Improve file creation.
+    - JDK-8278449: Improve keychain support.
+    - JDK-8278798: Improve supported intrinsic.
+    - JDK-8278805: Enhance BMP image loading.
+    - JDK-8278972, CVE-2022-21496: Improve URL supports.
+    - JDK-8281388: Change wrapping of EncryptedPrivateKeyInfo.
+  * Refresh patches.
+
+ -- Matthias Klose <doko@ubuntu.com>  Mon, 02 May 2022 20:04:05 +0200
+
+openjdk-17 (17.0.2+8-1) unstable; urgency=high
+
+  * OpenJDK 17.0.2+8 (release).
+  * Addresses security issues: CVE-2022-21366, CVE-2022-21365, CVE-2022-21360,
+    CVE-2022-21341, CVE-2022-21340, CVE-2022-21305, CVE-2022-21299,
+    CVE-2022-21296, CVE-2022-21294, CVE-2022-21293, CVE-2022-21291,
+    CVE-2022-21283, CVE-2022-21282, CVE-2022-21277, CVE-2022-21248.
+
+ -- Matthias Klose <doko@ubuntu.com>  Thu, 20 Jan 2022 17:13:47 +0100
+
 openjdk-17 (17.0.1+12-1) unstable; urgency=medium
 
   * OpenJDK 17.0.1+12 (release).

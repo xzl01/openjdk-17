@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011, 2021, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2011, 2022, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -57,6 +57,9 @@ TOOLCHAIN_MINIMUM_VERSION_xlc=""
 
 # Minimum supported linker versions, empty means unspecified
 TOOLCHAIN_MINIMUM_LD_VERSION_gcc="2.18"
+
+# Minimum supported version
+JTREG_MINIMUM_VERSION=6.1
 
 # Prepare the system so that TOOLCHAIN_CHECK_COMPILER_VERSION can be called.
 # Must have CC_VERSION_NUMBER and CXX_VERSION_NUMBER.
@@ -221,6 +224,12 @@ AC_DEFUN_ONCE([TOOLCHAIN_DETERMINE_TOOLCHAIN_TYPE],
   AC_ARG_WITH(toolchain-type, [AS_HELP_STRING([--with-toolchain-type],
       [the toolchain type (or family) to use, use '--help' to show possible values @<:@platform dependent@:>@])])
 
+  # Linux x86_64 needs higher binutils after 8265783
+  # (this really is a dependency on as version, but we take ld as a check for a general binutils version)
+  if test "x$OPENJDK_TARGET_CPU" = "xx86_64"; then
+    TOOLCHAIN_MINIMUM_LD_VERSION_gcc="2.25"
+  fi
+
   # Use indirect variable referencing
   toolchain_var_name=VALID_TOOLCHAINS_$OPENJDK_BUILD_OS
   VALID_TOOLCHAINS=${!toolchain_var_name}
@@ -228,7 +237,7 @@ AC_DEFUN_ONCE([TOOLCHAIN_DETERMINE_TOOLCHAIN_TYPE],
   if test "x$OPENJDK_TARGET_OS" = xmacosx; then
     if test -n "$XCODEBUILD"; then
       # On Mac OS X, default toolchain to clang after Xcode 5
-      XCODE_VERSION_OUTPUT=`"$XCODEBUILD" -version 2>&1 | $HEAD -n 1`
+      XCODE_VERSION_OUTPUT=`"$XCODEBUILD" -version | $HEAD -n 1`
       $ECHO "$XCODE_VERSION_OUTPUT" | $GREP "Xcode " > /dev/null
       if test $? -ne 0; then
         AC_MSG_NOTICE([xcodebuild output: $XCODE_VERSION_OUTPUT])
@@ -677,9 +686,10 @@ AC_DEFUN_ONCE([TOOLCHAIN_DETECT_TOOLCHAIN_CORE],
   TOOLCHAIN_PREPARE_FOR_LD_VERSION_COMPARISONS
 
   if test "x$TOOLCHAIN_MINIMUM_LD_VERSION" != x; then
+    AC_MSG_NOTICE([comparing linker version to minimum version $TOOLCHAIN_MINIMUM_LD_VERSION])
     TOOLCHAIN_CHECK_LINKER_VERSION(VERSION: $TOOLCHAIN_MINIMUM_LD_VERSION,
         IF_OLDER_THAN: [
-          AC_MSG_WARN([You are using a linker older than $TOOLCHAIN_MINIMUM_LD_VERSION. This is not a supported configuration.])
+          AC_MSG_ERROR([You are using a linker older than $TOOLCHAIN_MINIMUM_LD_VERSION. This is not a supported configuration.])
         ]
     )
   fi
@@ -1075,6 +1085,23 @@ AC_DEFUN_ONCE([TOOLCHAIN_SETUP_JTREG],
 
   UTIL_FIXUP_PATH(JT_HOME)
   AC_SUBST(JT_HOME)
+
+  # Verify jtreg version
+  if test "x$JT_HOME" != x; then
+    AC_MSG_CHECKING([jtreg version number])
+    # jtreg -version looks like this: "jtreg 6.1+1-19"
+    # Extract actual version part ("6.1" in this case)
+    jtreg_version_full=`$JAVA -jar $JT_HOME/lib/jtreg.jar -version | $HEAD -n 1 | $CUT -d ' ' -f 2`
+    jtreg_version=${jtreg_version_full/%+*}
+    AC_MSG_RESULT([$jtreg_version])
+
+    # This is a simplified version of TOOLCHAIN_CHECK_COMPILER_VERSION
+    comparable_actual_version=`$AWK -F. '{ printf("%05d%05d%05d%05d\n", [$]1, [$]2, [$]3, [$]4) }' <<< "$jtreg_version"`
+    comparable_minimum_version=`$AWK -F. '{ printf("%05d%05d%05d%05d\n", [$]1, [$]2, [$]3, [$]4) }' <<< "$JTREG_MINIMUM_VERSION"`
+    if test $comparable_actual_version -lt $comparable_minimum_version ; then
+      AC_MSG_ERROR([jtreg version is too old, at least version $JTREG_MINIMUM_VERSION is required])
+    fi
+  fi
 ])
 
 # Setup the JIB dependency resolver

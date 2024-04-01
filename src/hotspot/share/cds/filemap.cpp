@@ -165,9 +165,9 @@ template <int N> static void get_header_version(char (&header_version) [N]) {
   assert(header_version[JVM_IDENT_MAX-1] == 0, "must be");
 }
 
-FileMapInfo::FileMapInfo(bool is_static) {
-  memset((void*)this, 0, sizeof(FileMapInfo));
-  _is_static = is_static;
+FileMapInfo::FileMapInfo(bool is_static) :
+  _is_static(is_static), _file_open(false), _is_mapped(false), _fd(-1), _file_offset(0),
+  _full_path(nullptr), _base_archive_name(nullptr), _header(nullptr) {
   size_t header_size;
   if (is_static) {
     assert(_current_info == NULL, "must be singleton"); // not thread safe
@@ -183,8 +183,6 @@ FileMapInfo::FileMapInfo(bool is_static) {
   _header->set_header_size(header_size);
   _header->set_version(INVALID_CDS_ARCHIVE_VERSION);
   _header->set_has_platform_or_app_classes(true);
-  _file_offset = 0;
-  _file_open = false;
 }
 
 FileMapInfo::~FileMapInfo() {
@@ -194,6 +192,14 @@ FileMapInfo::~FileMapInfo() {
   } else {
     assert(_dynamic_archive_info == this, "must be singleton"); // not thread safe
     _dynamic_archive_info = NULL;
+  }
+
+  if (_header != nullptr) {
+    os::free(_header);
+  }
+
+  if (_file_open) {
+    ::close(_fd);
   }
 }
 
@@ -2341,28 +2347,28 @@ void FileMapInfo::stop_sharing_and_unmap(const char* msg) {
 ClassPathEntry** FileMapInfo::_classpath_entries_for_jvmti = NULL;
 
 ClassPathEntry* FileMapInfo::get_classpath_entry_for_jvmti(int i, TRAPS) {
+  if (i == 0) {
+    // index 0 corresponds to the ClassPathImageEntry which is a globally shared object
+    // and should never be deleted.
+    return ClassLoader::get_jrt_entry();
+  }
   ClassPathEntry* ent = _classpath_entries_for_jvmti[i];
   if (ent == NULL) {
-    if (i == 0) {
-      ent = ClassLoader::get_jrt_entry();
-      assert(ent != NULL, "must be");
-    } else {
-      SharedClassPathEntry* scpe = shared_path(i);
-      assert(scpe->is_jar(), "must be"); // other types of scpe will not produce archived classes
+    SharedClassPathEntry* scpe = shared_path(i);
+    assert(scpe->is_jar(), "must be"); // other types of scpe will not produce archived classes
 
-      const char* path = scpe->name();
-      struct stat st;
-      if (os::stat(path, &st) != 0) {
+    const char* path = scpe->name();
+    struct stat st;
+    if (os::stat(path, &st) != 0) {
+      char *msg = NEW_RESOURCE_ARRAY_IN_THREAD(THREAD, char, strlen(path) + 128);
+      jio_snprintf(msg, strlen(path) + 127, "error in finding JAR file %s", path);
+      THROW_MSG_(vmSymbols::java_io_IOException(), msg, NULL);
+    } else {
+      ent = ClassLoader::create_class_path_entry(THREAD, path, &st, false, false);
+      if (ent == NULL) {
         char *msg = NEW_RESOURCE_ARRAY_IN_THREAD(THREAD, char, strlen(path) + 128);
-        jio_snprintf(msg, strlen(path) + 127, "error in finding JAR file %s", path);
+        jio_snprintf(msg, strlen(path) + 127, "error in opening JAR file %s", path);
         THROW_MSG_(vmSymbols::java_io_IOException(), msg, NULL);
-      } else {
-        ent = ClassLoader::create_class_path_entry(THREAD, path, &st, false, false);
-        if (ent == NULL) {
-          char *msg = NEW_RESOURCE_ARRAY_IN_THREAD(THREAD, char, strlen(path) + 128);
-          jio_snprintf(msg, strlen(path) + 127, "error in opening JAR file %s", path);
-          THROW_MSG_(vmSymbols::java_io_IOException(), msg, NULL);
-        }
       }
     }
 
